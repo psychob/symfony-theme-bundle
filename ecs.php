@@ -351,4 +351,3 @@ return ECSConfig::configure()
     )
     ->withConfiguredRule(LineLengthFixer::class, ['line_length' => 120, 'break_long_lines' => true])
 ;
-
