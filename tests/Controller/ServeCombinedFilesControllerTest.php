@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\PsychoB\Backlog\Theme\Controller;
 
 use Override;
+use Psr\Cache\CacheItemPoolInterface;
 use PsychoB\Backlog\Theme\Service\ThemeCombiner;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -12,8 +13,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Functional tests for ServeCombinedFilesController.
- *
- * @psalm-suppress MixedMethodCall, PossiblyNullArgument
  */
 final class ServeCombinedFilesControllerTest extends WebTestCase
 {
@@ -26,6 +25,7 @@ final class ServeCombinedFilesControllerTest extends WebTestCase
 
         // Clear theme cache to ensure fresh state
         $cache = self::getContainer()->get('cache.theme');
+        \assert($cache instanceof CacheItemPoolInterface);
         $cache->clear();
     }
 
@@ -41,7 +41,7 @@ final class ServeCombinedFilesControllerTest extends WebTestCase
         $this->client->request('GET', '/_/theme/frontend.css');
 
         $response = $this->client->getResponse();
-        self::assertStringStartsWith('text/css', $response->headers->get('Content-Type'));
+        self::assertStringStartsWith('text/css', $response->headers->get('Content-Type') ?? '');
     }
 
     public function testServeReturnsEtagHeader(): void
@@ -183,7 +183,7 @@ final class ServeCombinedFilesControllerTest extends WebTestCase
         $cacheControl = $this->client->getResponse()
             ->headers->get('Cache-Control')
         ;
-        self::assertStringContainsString('immutable', $cacheControl);
+        self::assertStringContainsString('immutable', $cacheControl ?? '');
     }
 
     public function testServeAdminCssReturnsOk(): void
@@ -191,7 +191,7 @@ final class ServeCombinedFilesControllerTest extends WebTestCase
         $this->client->request('GET', '/_/theme/admin.css');
 
         self::assertResponseIsSuccessful();
-        self::assertStringStartsWith('text/css', $this->client->getResponse()->headers->get('Content-Type'));
+        self::assertStringStartsWith('text/css', $this->client->getResponse()->headers->get('Content-Type') ?? '');
     }
 
     public function testServeCssContentIsNotEmpty(): void

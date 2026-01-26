@@ -12,8 +12,6 @@ use PsychoB\Backlog\Theme\Service\SourceMapGenerator;
 
 /**
  * Unit tests for SourceMapGenerator.
- *
- * @psalm-suppress MixedAssignment, MixedArrayAccess, MixedArgument
  */
 final class SourceMapGeneratorTest extends TestCase
 {
@@ -25,6 +23,26 @@ final class SourceMapGeneratorTest extends TestCase
         $this->generator = new SourceMapGenerator();
     }
 
+    /**
+     * Decode and validate source map JSON structure.
+     *
+     * @return array{version: int, file: string, sources: list<string>, sourcesContent: list<string>, mappings: string}
+     */
+    private function assertSourceMapStructure(string $json): array
+    {
+        $decoded = json_decode($json, true);
+        self::assertIsArray($decoded);
+
+        self::assertArrayHasKey('version', $decoded);
+        self::assertArrayHasKey('file', $decoded);
+        self::assertArrayHasKey('sources', $decoded);
+        self::assertArrayHasKey('sourcesContent', $decoded);
+        self::assertArrayHasKey('mappings', $decoded);
+
+        /** @var array{version: int, file: string, sources: list<string>, sourcesContent: list<string>, mappings: string} */
+        return $decoded;
+    }
+
     public function testGenerateReturnsValidJsonStructure(): void
     {
         $sourcePaths = ['/path/to/file.css'];
@@ -33,20 +51,14 @@ final class SourceMapGeneratorTest extends TestCase
 
         $result = $this->generator->generate($sourcePaths, $sourceContents, $generatedFile);
 
-        $decoded = json_decode($result, true);
-        self::assertIsArray($decoded);
-        self::assertArrayHasKey('version', $decoded);
-        self::assertArrayHasKey('file', $decoded);
-        self::assertArrayHasKey('sources', $decoded);
-        self::assertArrayHasKey('sourcesContent', $decoded);
-        self::assertArrayHasKey('mappings', $decoded);
+        $this->assertSourceMapStructure($result);
     }
 
     public function testGenerateReturnsVersion3(): void
     {
         $result = $this->generator->generate(['/file.css'], ["body {}\n"], 'out.css');
 
-        $decoded = json_decode($result, true);
+        $decoded = $this->assertSourceMapStructure($result);
         self::assertSame(3, $decoded['version']);
     }
 
@@ -54,7 +66,7 @@ final class SourceMapGeneratorTest extends TestCase
     {
         $result = $this->generator->generate(['/file.css'], ["body {}\n"], 'frontend.css');
 
-        $decoded = json_decode($result, true);
+        $decoded = $this->assertSourceMapStructure($result);
         self::assertSame('frontend.css', $decoded['file']);
     }
 
@@ -65,7 +77,7 @@ final class SourceMapGeneratorTest extends TestCase
 
         $result = $this->generator->generate($sourcePaths, $sourceContents, 'out.css');
 
-        $decoded = json_decode($result, true);
+        $decoded = $this->assertSourceMapStructure($result);
         self::assertSame(['clear.css', 'theme.css'], $decoded['sources']);
     }
 
@@ -86,7 +98,7 @@ final class SourceMapGeneratorTest extends TestCase
             $tempDir,
         );
 
-        $decoded = json_decode($result, true);
+        $decoded = $this->assertSourceMapStructure($result);
         self::assertSame(['/src/styles/base.css', '/src/styles/theme.css'], $decoded['sources']);
 
         // Cleanup
@@ -108,7 +120,7 @@ final class SourceMapGeneratorTest extends TestCase
 
         $result = $this->generator->generate([$externalFile], ["/* external */\n"], 'out.css', $tempDir);
 
-        $decoded = json_decode($result, true);
+        $decoded = $this->assertSourceMapStructure($result);
         self::assertSame([':private-0'], $decoded['sources']);
 
         // Cleanup
@@ -124,7 +136,7 @@ final class SourceMapGeneratorTest extends TestCase
 
         $result = $this->generator->generate(['/a.css', '/b.css'], $sourceContents, 'out.css');
 
-        $decoded = json_decode($result, true);
+        $decoded = $this->assertSourceMapStructure($result);
         self::assertSame($sourceContents, $decoded['sourcesContent']);
     }
 
@@ -132,7 +144,7 @@ final class SourceMapGeneratorTest extends TestCase
     {
         $result = $this->generator->generate(['/file.css'], ["line1\nline2\n"], 'out.css');
 
-        $decoded = json_decode($result, true);
+        $decoded = $this->assertSourceMapStructure($result);
         self::assertNotEmpty($decoded['mappings']);
     }
 
@@ -141,7 +153,7 @@ final class SourceMapGeneratorTest extends TestCase
         $content = "line1\nline2\nline3";
         $result = $this->generator->generate(['/file.css'], [$content], 'out.css');
 
-        $decoded = json_decode($result, true);
+        $decoded = $this->assertSourceMapStructure($result);
         // Three lines means at least 2 semicolons separating line mappings
         $semicolonCount = substr_count($decoded['mappings'], ';');
         self::assertGreaterThanOrEqual(2, $semicolonCount);
@@ -154,7 +166,7 @@ final class SourceMapGeneratorTest extends TestCase
 
         $result = $this->generator->generate($sourcePaths, $sourceContents, 'combined.css');
 
-        $decoded = json_decode($result, true);
+        $decoded = $this->assertSourceMapStructure($result);
         self::assertCount(3, $decoded['sources']);
         self::assertCount(3, $decoded['sourcesContent']);
     }
@@ -163,8 +175,7 @@ final class SourceMapGeneratorTest extends TestCase
     {
         $result = $this->generator->generate(['/empty.css'], [''], 'out.css');
 
-        $decoded = json_decode($result, true);
-        self::assertIsArray($decoded);
+        $decoded = $this->assertSourceMapStructure($result);
         self::assertSame([''], $decoded['sourcesContent']);
     }
 
@@ -172,11 +183,10 @@ final class SourceMapGeneratorTest extends TestCase
     {
         $result = $this->generator->generate(['/file.css'], ["body {}\n"], 'out.css');
 
-        $decoded = json_decode($result, true);
-        $mappings = $decoded['mappings'];
+        $decoded = $this->assertSourceMapStructure($result);
 
         // VLQ characters are: A-Z, a-z, 0-9, +, /
-        self::assertMatchesRegularExpression('/^[A-Za-z0-9+\/;,]*$/', $mappings);
+        self::assertMatchesRegularExpression('/^[A-Za-z0-9+\/;,]*$/', $decoded['mappings']);
     }
 
     public function testGenerateOutputIsValidJson(): void
@@ -187,8 +197,7 @@ final class SourceMapGeneratorTest extends TestCase
             'out.css'
         );
 
-        $decoded = json_decode($result, true);
-        self::assertNotNull($decoded);
+        $this->assertSourceMapStructure($result);
         self::assertSame(JSON_ERROR_NONE, json_last_error());
     }
 

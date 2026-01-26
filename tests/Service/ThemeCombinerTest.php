@@ -13,8 +13,6 @@ use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 /**
  * Unit tests for ThemeCombiner service.
- *
- * @psalm-suppress PossiblyFalseIterator, MixedAssignment, MixedOperand, MixedArgumentTypeCoercion, MixedArrayAccess
  */
 final class ThemeCombinerTest extends TestCase
 {
@@ -43,7 +41,10 @@ final class ThemeCombinerTest extends TestCase
         }
 
         if (is_dir($path)) {
-            foreach (scandir($path) as $item) {
+            $items = scandir($path);
+            \assert($items !== false);
+
+            foreach ($items as $item) {
                 if ($item === '.' || $item === '..') {
                     continue;
                 }
@@ -70,6 +71,10 @@ final class ThemeCombinerTest extends TestCase
         return $fullPath;
     }
 
+    /**
+     * @param array<string, string>       $paths
+     * @param array<string, list<string>> $files
+     */
     private function createCombiner(
         array $paths = [],
         array $files = [],
