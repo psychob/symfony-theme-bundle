@@ -7,12 +7,18 @@ namespace PsychoB\Backlog\Theme\Service;
 use const JSON_THROW_ON_ERROR;
 use const JSON_UNESCAPED_SLASHES;
 
+use Symfony\Component\Stopwatch\Stopwatch;
+
 /**
  * Generates source maps (v3) for combined CSS/JS files.
  */
 final class SourceMapGenerator
 {
     private const string VLQ_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+    public function __construct(
+        private readonly ?Stopwatch $stopwatch = null,
+    ) {}
 
     /**
      * Generate a source map for concatenated files.
@@ -28,53 +34,59 @@ final class SourceMapGenerator
         string $generatedFile,
         string $projectDir = '',
     ): string {
-        $sources = [];
-        $sourcesContent = [];
-        $mappingLines = [];
+        $this->stopwatch?->start('SourceMapGenerator.generate', 'services');
 
-        $prevSourceIndex = 0;
-        $prevSourceLine = 0;
-        $privateCount = 0;
+        try {
+            $sources = [];
+            $sourcesContent = [];
+            $mappingLines = [];
 
-        foreach ($sourcePaths as $index => $path) {
-            $sources[] = $this->getRelativePath($path, $projectDir, $privateCount);
-            $sourcesContent[] = $sourceContents[$index];
+            $prevSourceIndex = 0;
+            $prevSourceLine = 0;
+            $privateCount = 0;
 
-            $content = $sourceContents[$index];
-            $lines = explode("\n", $content);
-            $lineCount = \count($lines);
+            foreach ($sourcePaths as $index => $path) {
+                $sources[] = $this->getRelativePath($path, $projectDir, $privateCount);
+                $sourcesContent[] = $sourceContents[$index];
 
-            for ($sourceLine = 0; $sourceLine < $lineCount; $sourceLine++) {
-                // Each line maps column 0 of generated to column 0 of source
-                // VLQ segments: [genColumn, sourceIndex, sourceLine, sourceColumn]
-                // All relative to previous values
+                $content = $sourceContents[$index];
+                $lines = explode("\n", $content);
+                $lineCount = \count($lines);
 
-                $genColumn = 0;
-                $sourceIndexDelta = $index - $prevSourceIndex;
-                $sourceLineDelta = $sourceLine - $prevSourceLine;
-                $sourceColumn = 0;
+                for ($sourceLine = 0; $sourceLine < $lineCount; $sourceLine++) {
+                    // Each line maps column 0 of generated to column 0 of source
+                    // VLQ segments: [genColumn, sourceIndex, sourceLine, sourceColumn]
+                    // All relative to previous values
 
-                $segment = $this->encodeVlq($genColumn)
-                    . $this->encodeVlq($sourceIndexDelta)
-                    . $this->encodeVlq($sourceLineDelta)
-                    . $this->encodeVlq($sourceColumn);
+                    $genColumn = 0;
+                    $sourceIndexDelta = $index - $prevSourceIndex;
+                    $sourceLineDelta = $sourceLine - $prevSourceLine;
+                    $sourceColumn = 0;
 
-                $mappingLines[] = $segment;
+                    $segment = $this->encodeVlq($genColumn)
+                        . $this->encodeVlq($sourceIndexDelta)
+                        . $this->encodeVlq($sourceLineDelta)
+                        . $this->encodeVlq($sourceColumn);
 
-                $prevSourceIndex = $index;
-                $prevSourceLine = $sourceLine;
+                    $mappingLines[] = $segment;
+
+                    $prevSourceIndex = $index;
+                    $prevSourceLine = $sourceLine;
+                }
             }
+
+            $mappings = implode(';', $mappingLines);
+
+            return json_encode([
+                'version'        => 3,
+                'file'           => $generatedFile,
+                'sources'        => $sources,
+                'sourcesContent' => $sourcesContent,
+                'mappings'       => $mappings,
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        } finally {
+            $this->stopwatch?->stop('SourceMapGenerator.generate');
         }
-
-        $mappings = implode(';', $mappingLines);
-
-        return json_encode([
-            'version'        => 3,
-            'file'           => $generatedFile,
-            'sources'        => $sources,
-            'sourcesContent' => $sourcesContent,
-            'mappings'       => $mappings,
-        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
     }
 
     /**

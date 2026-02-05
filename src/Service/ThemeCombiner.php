@@ -7,6 +7,7 @@ namespace PsychoB\Backlog\Theme\Service;
 use const PATHINFO_EXTENSION;
 
 use RuntimeException;
+use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
@@ -36,6 +37,7 @@ final class ThemeCombiner
         private readonly bool $sourcemaps,
         private readonly SourceMapGenerator $sourceMapGenerator,
         private readonly CacheInterface $cache,
+        private readonly ?Stopwatch $stopwatch = null,
     ) {
         // Fix paths that may have been mangled by container compilation
         $this->paths = $this->fixPaths($themePaths);
@@ -69,32 +71,38 @@ final class ThemeCombiner
 
     public function getCombinedFile(string $name): CombinedFileResult
     {
-        if (!isset($this->files[$name])) {
-            throw new RuntimeException(\sprintf('Theme file "%s" is not configured.', $name));
+        $this->stopwatch?->start('ThemeCombiner.getCombinedFile', 'services');
+
+        try {
+            if (!isset($this->files[$name])) {
+                throw new RuntimeException(\sprintf('Theme file "%s" is not configured.', $name));
+            }
+
+            $sourceFiles = $this->files[$name];
+            $resolvedPaths = $this->resolveAllPaths($sourceFiles);
+            $mtimes = $this->collectMtimes($resolvedPaths);
+
+            if ($mtimes === []) {
+                throw new RuntimeException(\sprintf('Theme file "%s" has no source files.', $name));
+            }
+
+            $hash = $this->generateHash($resolvedPaths, $mtimes);
+            $extension = pathinfo($name, PATHINFO_EXTENSION);
+            $cacheKey = 'theme_' . $hash;
+
+            /** @var CombinedFileResult $result */
+            return $this->cache->get(
+                $cacheKey,
+                fn(ItemInterface $item): CombinedFileResult => $this->generateCombinedFile(
+                    $resolvedPaths,
+                    $mtimes,
+                    $hash,
+                    $extension
+                )
+            );
+        } finally {
+            $this->stopwatch?->stop('ThemeCombiner.getCombinedFile');
         }
-
-        $sourceFiles = $this->files[$name];
-        $resolvedPaths = $this->resolveAllPaths($sourceFiles);
-        $mtimes = $this->collectMtimes($resolvedPaths);
-
-        if ($mtimes === []) {
-            throw new RuntimeException(\sprintf('Theme file "%s" has no source files.', $name));
-        }
-
-        $hash = $this->generateHash($resolvedPaths, $mtimes);
-        $extension = pathinfo($name, PATHINFO_EXTENSION);
-        $cacheKey = 'theme_' . $hash;
-
-        /** @var CombinedFileResult $result */
-        return $this->cache->get(
-            $cacheKey,
-            fn(ItemInterface $item): CombinedFileResult => $this->generateCombinedFile(
-                $resolvedPaths,
-                $mtimes,
-                $hash,
-                $extension
-            )
-        );
     }
 
     /**
@@ -192,43 +200,49 @@ final class ThemeCombiner
         string $hash,
         string $extension,
     ): CombinedFileResult {
-        $combined = '';
-        $contents = [];
+        $this->stopwatch?->start('ThemeCombiner.generateCombinedFile', 'services');
 
-        foreach ($resolvedPaths as $path) {
-            $content = file_get_contents($path);
+        try {
+            $combined = '';
+            $contents = [];
 
-            if ($content === false) {
-                throw new RuntimeException(\sprintf('Could not read file: "%s"', $path));
+            foreach ($resolvedPaths as $path) {
+                $content = file_get_contents($path);
+
+                if ($content === false) {
+                    throw new RuntimeException(\sprintf('Could not read file: "%s"', $path));
+                }
+
+                $contents[] = $content;
+                $combined .= $content . "\n";
             }
 
-            $contents[] = $content;
-            $combined .= $content . "\n";
-        }
+            $sourceMapContent = null;
 
-        $sourceMapContent = null;
+            // Generate source map if enabled
+            if ($this->sourcemaps) {
+                $mapFilename = $hash . '.' . $extension . '.map';
+                $sourceMapContent = $this->sourceMapGenerator->generate(
+                    $resolvedPaths,
+                    $contents,
+                    $hash . '.' . $extension,
+                    $this->projectDir,
+                );
 
-        // Generate source map if enabled
-        if ($this->sourcemaps) {
-            $mapFilename = $hash . '.' . $extension . '.map';
-            $sourceMapContent = $this->sourceMapGenerator->generate(
-                $resolvedPaths,
-                $contents,
-                $hash . '.' . $extension,
-                $this->projectDir,
+                // Append sourceMappingURL comment
+                $combined .= $this->getSourceMapComment($extension, $mapFilename);
+            }
+
+            return new CombinedFileResult(
+                content: $combined,
+                hash: $hash,
+                lastModified: $mtimes === [] ? 0 : max($mtimes),
+                contentType: $this->getContentType($extension),
+                sourceMapContent: $sourceMapContent,
             );
-
-            // Append sourceMappingURL comment
-            $combined .= $this->getSourceMapComment($extension, $mapFilename);
+        } finally {
+            $this->stopwatch?->stop('ThemeCombiner.generateCombinedFile');
         }
-
-        return new CombinedFileResult(
-            content: $combined,
-            hash: $hash,
-            lastModified: $mtimes === [] ? 0 : max($mtimes),
-            contentType: $this->getContentType($extension),
-            sourceMapContent: $sourceMapContent,
-        );
     }
 
     private function getContentType(string $extension): string
