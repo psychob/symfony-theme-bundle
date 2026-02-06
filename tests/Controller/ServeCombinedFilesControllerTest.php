@@ -8,13 +8,13 @@ use Override;
 use Psr\Cache\CacheItemPoolInterface;
 use PsychoB\Backlog\Theme\Service\ThemeCombiner;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
+use Tests\PsychoB\Backlog\WebBacklogTestCase;
 
 /**
  * Functional tests for ServeCombinedFilesController.
  */
-final class ServeCombinedFilesControllerTest extends WebTestCase
+final class ServeCombinedFilesControllerTest extends WebBacklogTestCase
 {
     private KernelBrowser $client;
 

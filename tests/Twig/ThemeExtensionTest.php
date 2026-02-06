@@ -6,13 +6,13 @@ namespace Tests\PsychoB\Backlog\Theme\Twig;
 
 use Override;
 use PsychoB\Backlog\Theme\Twig\ThemeExtension;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Tests\PsychoB\Backlog\BacklogTestCase;
 use Twig\TwigFunction;
 
 /**
  * Tests for the Theme Twig extension.
  */
-final class ThemeExtensionTest extends KernelTestCase
+final class ThemeExtensionTest extends BacklogTestCase
 {
     private ThemeExtension $extension;
 
