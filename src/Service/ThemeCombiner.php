@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace PsychoB\Backlog\Theme\Service;
+namespace PsychoB\Theme\Service;
 
 use const PATHINFO_EXTENSION;
 
+use Override;
 use RuntimeException;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -14,7 +15,7 @@ use Symfony\Contracts\Cache\ItemInterface;
 /**
  * Combines multiple CSS/JS files into a single cached output with intelligent cache invalidation.
  */
-final class ThemeCombiner
+final class ThemeCombiner implements ThemeCombinerInterface
 {
     /**
      * @var array<string, string>
@@ -69,6 +70,7 @@ final class ThemeCombiner
         return $fixed;
     }
 
+    #[Override]
     public function getCombinedFile(string $name): CombinedFileResult
     {
         $this->stopwatch?->start('ThemeCombiner.getCombinedFile', 'services');
@@ -105,9 +107,7 @@ final class ThemeCombiner
         }
     }
 
-    /**
-     * Get a source map by hash (for serving via controller).
-     */
+    #[Override]
     public function getSourceMap(string $hash): ?string
     {
         $cacheKey = 'theme_' . $hash;

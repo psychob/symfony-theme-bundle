@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace PsychoB\Backlog\Theme\Controller;
+namespace PsychoB\Theme\Controller;
 
-use PsychoB\Backlog\Theme\Service\ThemeCombiner;
+use PsychoB\Theme\Service\ThemeCombinerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -17,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class ServeCombinedFilesController
 {
     public function __construct(
-        private readonly ThemeCombiner $combiner,
+        private readonly ThemeCombinerInterface $combiner,
     ) {}
 
     #[Route('/{hash}.{ext}.map', name: 'theme_serve_map', methods: ['GET'], requirements: [

@@ -1,0 +1,13 @@
+theme:
+    # Enable source map generation (useful in dev)
+    sourcemaps: '%kernel.debug%'
+
+    # Map namespace aliases to filesystem directories
+    # paths:
+    #     '%kernel.project_dir%/assets/css': app
+
+    # Define combined file bundles
+    # files:
+    #     app.css:
+    #         - '@app/reset.css'
+    #         - '@app/main.css'

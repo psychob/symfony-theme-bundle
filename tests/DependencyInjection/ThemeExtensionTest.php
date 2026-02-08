@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Tests\PsychoB\Backlog\Theme\DependencyInjection;
+namespace Tests\PsychoB\Theme\DependencyInjection;
 
 use Override;
 use PHPUnit\Framework\TestCase;
-use PsychoB\Backlog\Theme\Controller\ServeCombinedFilesController;
-use PsychoB\Backlog\Theme\DependencyInjection\Configuration;
-use PsychoB\Backlog\Theme\DependencyInjection\ThemeExtension;
-use PsychoB\Backlog\Theme\Service\SourceMapGenerator;
-use PsychoB\Backlog\Theme\Service\ThemeCombiner;
-use PsychoB\Backlog\Theme\Twig\ThemeExtension as TwigThemeExtension;
+use PsychoB\Theme\Controller\ServeCombinedFilesController;
+use PsychoB\Theme\DependencyInjection\Configuration;
+use PsychoB\Theme\DependencyInjection\ThemeExtension;
+use PsychoB\Theme\Service\SourceMapGenerator;
+use PsychoB\Theme\Service\ThemeCombiner;
+use PsychoB\Theme\Twig\ThemeExtension as TwigThemeExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**

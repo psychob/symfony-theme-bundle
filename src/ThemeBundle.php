@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PsychoB\Backlog\Theme;
+namespace PsychoB\Theme;
 
 use Override;
 use Symfony\Component\HttpKernel\Bundle\Bundle;

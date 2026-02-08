@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Tests\PsychoB\Backlog\Theme\DependencyInjection;
+namespace Tests\PsychoB\Theme\DependencyInjection;
 
 use Override;
 use PHPUnit\Framework\TestCase;
-use PsychoB\Backlog\Theme\DependencyInjection\Configuration;
+use PsychoB\Theme\DependencyInjection\Configuration;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\Processor;
 

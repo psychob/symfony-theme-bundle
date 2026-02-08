@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PsychoB\Backlog\Theme\Service;
+namespace PsychoB\Theme\Service;
 
 /**
  * Result of combining multiple files into a single cached output.

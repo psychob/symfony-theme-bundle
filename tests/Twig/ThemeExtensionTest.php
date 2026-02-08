@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Tests\PsychoB\Backlog\Theme\Twig;
+namespace Tests\PsychoB\Theme\Twig;
 
 use Override;
-use PsychoB\Backlog\Theme\Twig\ThemeExtension;
-use Tests\PsychoB\Backlog\BacklogTestCase;
+use PHPUnit\Framework\MockObject\MockObject;
+use PsychoB\Theme\Twig\ThemeExtension;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Tests\PsychoB\Theme\ThemeTestCase;
 use Twig\TwigFunction;
 
 /**
  * Tests for the Theme Twig extension.
  */
-final class ThemeExtensionTest extends BacklogTestCase
+final class ThemeExtensionTest extends ThemeTestCase
 {
     private ThemeExtension $extension;
+    private UrlGeneratorInterface&MockObject $urlGenerator;
 
     #[Override]
     protected function setUp(): void
     {
-        self::bootKernel();
-
-        /** @var ThemeExtension $extension */
-        $extension = self::getContainer()->get(ThemeExtension::class);
-        $this->extension = $extension;
+        $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $this->extension = new ThemeExtension($this->urlGenerator);
     }
 
     public function testGetFunctionsReturnsThemeAssetFunction(): void
@@ -37,13 +37,20 @@ final class ThemeExtensionTest extends BacklogTestCase
 
     public function testThemeAssetGeneratesUrlForConfiguredFile(): void
     {
+        $this->urlGenerator->method('generate')
+            ->with('theme_serve', ['file' => 'frontend.css'])
+            ->willReturn('/_/theme/frontend.css');
+
         $url = $this->extension->themeAsset('frontend.css');
 
-        self::assertStringContainsString('/_/theme/frontend.css', $url);
+        self::assertSame('/_/theme/frontend.css', $url);
     }
 
     public function testThemeAssetGeneratesUrlForDifferentFiles(): void
     {
+        $this->urlGenerator->method('generate')
+            ->willReturnCallback(fn(string $route, array $params): string => '/_/theme/' . $params['file']);
+
         $frontendUrl = $this->extension->themeAsset('frontend.css');
         $adminUrl = $this->extension->themeAsset('admin.css');
 
@@ -52,11 +59,13 @@ final class ThemeExtensionTest extends BacklogTestCase
         self::assertNotSame($frontendUrl, $adminUrl);
     }
 
-    public function testThemeAssetReturnsRelativeUrl(): void
+    public function testThemeAssetDelegatestoUrlGenerator(): void
     {
-        $url = $this->extension->themeAsset('frontend.css');
+        $this->urlGenerator->expects(self::once())
+            ->method('generate')
+            ->with('theme_serve', ['file' => 'app.js'])
+            ->willReturn('/_/theme/app.js');
 
-        // URL should start with / (relative to domain)
-        self::assertStringStartsWith('/', $url);
+        $this->extension->themeAsset('app.js');
     }
 }

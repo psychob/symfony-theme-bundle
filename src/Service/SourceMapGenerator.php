@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PsychoB\Backlog\Theme\Service;
+namespace PsychoB\Theme\Service;
 
 use const JSON_THROW_ON_ERROR;
 use const JSON_UNESCAPED_SLASHES;

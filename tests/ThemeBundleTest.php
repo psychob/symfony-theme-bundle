@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\PsychoB\Backlog\Theme;
+namespace Tests\PsychoB\Theme;
 
 use PHPUnit\Framework\TestCase;
-use PsychoB\Backlog\Theme\ThemeBundle;
+use PsychoB\Theme\ThemeBundle;
 
 /**
  * Tests for ThemeBundle.
@@ -18,7 +18,7 @@ final class ThemeBundleTest extends TestCase
         $path = $bundle->getPath();
 
         self::assertDirectoryExists($path);
-        self::assertStringEndsWith('Theme', $path);
+        self::assertStringEndsWith('src', $path);
     }
 
     public function testGetPathContainsExpectedFiles(): void

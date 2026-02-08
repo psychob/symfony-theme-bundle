@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PsychoB\Backlog\Theme\Twig;
+namespace PsychoB\Theme\Twig;
 
 use Override;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;

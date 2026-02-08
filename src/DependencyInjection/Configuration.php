@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PsychoB\Backlog\Theme\DependencyInjection;
+namespace PsychoB\Theme\DependencyInjection;
 
 use Override;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;

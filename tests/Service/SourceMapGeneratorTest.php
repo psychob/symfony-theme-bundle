@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Tests\PsychoB\Backlog\Theme\Service;
+namespace Tests\PsychoB\Theme\Service;
 
 use const JSON_ERROR_NONE;
 
 use Override;
 use PHPUnit\Framework\TestCase;
-use PsychoB\Backlog\Theme\Service\SourceMapGenerator;
+use PsychoB\Theme\Service\SourceMapGenerator;
 
 /**
  * Unit tests for SourceMapGenerator.

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\PsychoB\Backlog\Theme\Service;
+namespace Tests\PsychoB\Theme\Service;
 
 use PHPUnit\Framework\TestCase;
-use PsychoB\Backlog\Theme\Service\CombinedFileResult;
+use PsychoB\Theme\Service\CombinedFileResult;
 use ReflectionClass;
 
 /**

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Tests\PsychoB\Backlog\Theme\Service;
+namespace Tests\PsychoB\Theme\Service;
 
 use Override;
 use PHPUnit\Framework\TestCase;
-use PsychoB\Backlog\Theme\Service\SourceMapGenerator;
-use PsychoB\Backlog\Theme\Service\ThemeCombiner;
+use PsychoB\Theme\Service\SourceMapGenerator;
+use PsychoB\Theme\Service\ThemeCombiner;
 use RuntimeException;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 

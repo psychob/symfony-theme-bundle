@@ -2,76 +2,98 @@
 
 declare(strict_types=1);
 
-namespace Tests\PsychoB\Backlog\Theme\Controller;
+namespace Tests\PsychoB\Theme\Controller;
 
 use Override;
-use Psr\Cache\CacheItemPoolInterface;
-use PsychoB\Backlog\Theme\Service\ThemeCombiner;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use PHPUnit\Framework\MockObject\MockObject;
+use PsychoB\Theme\Controller\ServeCombinedFilesController;
+use PsychoB\Theme\Service\CombinedFileResult;
+use PsychoB\Theme\Service\ThemeCombinerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Tests\PsychoB\Backlog\WebBacklogTestCase;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Tests\PsychoB\Theme\ThemeTestCase;
 
 /**
- * Functional tests for ServeCombinedFilesController.
+ * Unit tests for ServeCombinedFilesController.
  */
-final class ServeCombinedFilesControllerTest extends WebBacklogTestCase
+final class ServeCombinedFilesControllerTest extends ThemeTestCase
 {
-    private KernelBrowser $client;
+    private ServeCombinedFilesController $controller;
+    private ThemeCombinerInterface&MockObject $combiner;
 
     #[Override]
     protected function setUp(): void
     {
-        $this->client = self::createClient();
+        $this->combiner = $this->createMock(ThemeCombinerInterface::class);
+        $this->controller = new ServeCombinedFilesController($this->combiner);
+    }
 
-        // Clear theme cache to ensure fresh state
-        $cache = self::getContainer()->get('cache.theme');
-        \assert($cache instanceof CacheItemPoolInterface);
-        $cache->clear();
+    private function createResult(
+        string $content = 'body { color: red; }',
+        string $hash = 'abc123def456abc123def456abc123de',
+        int $lastModified = 1_700_000_000,
+        string $contentType = 'text/css',
+        ?string $sourceMapContent = null,
+    ): CombinedFileResult {
+        return new CombinedFileResult($content, $hash, $lastModified, $contentType, $sourceMapContent);
     }
 
     public function testServeReturnsOkForConfiguredFile(): void
     {
-        $this->client->request('GET', '/_/theme/frontend.css');
+        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
 
-        self::assertResponseIsSuccessful();
+        $response = $this->controller->serve('frontend.css', new Request());
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     }
 
     public function testServeReturnsCssContentType(): void
     {
-        $this->client->request('GET', '/_/theme/frontend.css');
+        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
 
-        $response = $this->client->getResponse();
+        $response = $this->controller->serve('frontend.css', new Request());
+
         self::assertStringStartsWith('text/css', $response->headers->get('Content-Type') ?? '');
+    }
+
+    public function testServeReturnsJsContentType(): void
+    {
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($this->createResult(content: 'var x=1;', contentType: 'application/javascript'));
+
+        $response = $this->controller->serve('app.js', new Request());
+
+        self::assertSame('application/javascript', $response->headers->get('Content-Type'));
     }
 
     public function testServeReturnsEtagHeader(): void
     {
-        $this->client->request('GET', '/_/theme/frontend.css');
+        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
 
-        $response = $this->client->getResponse();
+        $response = $this->controller->serve('frontend.css', new Request());
+
         $etag = $response->headers->get('ETag');
-
         self::assertNotNull($etag);
-        self::assertMatchesRegularExpression('/^"[a-f0-9]{32}"$/', $etag);
+        self::assertMatchesRegularExpression('/^"[a-f0-9]+"$/', $etag);
     }
 
     public function testServeReturnsLastModifiedHeader(): void
     {
-        $this->client->request('GET', '/_/theme/frontend.css');
+        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
 
-        $response = $this->client->getResponse();
-        $lastModified = $response->headers->get('Last-Modified');
+        $response = $this->controller->serve('frontend.css', new Request());
 
-        self::assertNotNull($lastModified);
+        self::assertNotNull($response->headers->get('Last-Modified'));
     }
 
     public function testServeReturnsCacheControlHeader(): void
     {
-        $this->client->request('GET', '/_/theme/frontend.css');
+        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
 
-        $response = $this->client->getResponse();
+        $response = $this->controller->serve('frontend.css', new Request());
+
         $cacheControl = $response->headers->get('Cache-Control');
-
         self::assertNotNull($cacheControl);
         self::assertStringContainsString('must-revalidate', $cacheControl);
         self::assertStringContainsString('public', $cacheControl);
@@ -79,129 +101,102 @@ final class ServeCombinedFilesControllerTest extends WebBacklogTestCase
 
     public function testServeReturnsNotModifiedForMatchingEtag(): void
     {
-        // First request to get the ETag
-        $this->client->request('GET', '/_/theme/frontend.css');
-        $etag = $this->client->getResponse()
-            ->headers->get('ETag')
-        ;
+        $result = $this->createResult();
+        $this->combiner->method('getCombinedFile')->willReturn($result);
 
-        // Second request with If-None-Match
-        $this->client->request('GET', '/_/theme/frontend.css', [], [], [
-            'HTTP_IF_NONE_MATCH' => $etag,
-        ]);
+        $request = new Request();
+        $request->headers->set('If-None-Match', '"' . $result->hash . '"');
 
-        self::assertResponseStatusCodeSame(Response::HTTP_NOT_MODIFIED);
+        $response = $this->controller->serve('frontend.css', $request);
+
+        self::assertSame(Response::HTTP_NOT_MODIFIED, $response->getStatusCode());
     }
 
     public function testServeReturnsNotModifiedForMatchingIfModifiedSince(): void
     {
-        // First request to get the Last-Modified
-        $this->client->request('GET', '/_/theme/frontend.css');
+        $result = $this->createResult();
+        $this->combiner->method('getCombinedFile')->willReturn($result);
 
-        // Second request with If-Modified-Since set to a future date
-        $futureDate = gmdate('D, d M Y H:i:s', time() + 3_600) . ' GMT';
-        $this->client->request('GET', '/_/theme/frontend.css', [], [], [
-            'HTTP_IF_MODIFIED_SINCE' => $futureDate,
-        ]);
+        $futureDate = gmdate('D, d M Y H:i:s', $result->lastModified + 3_600) . ' GMT';
+        $request = new Request();
+        $request->headers->set('If-Modified-Since', $futureDate);
 
-        self::assertResponseStatusCodeSame(Response::HTTP_NOT_MODIFIED);
+        $response = $this->controller->serve('frontend.css', $request);
+
+        self::assertSame(Response::HTTP_NOT_MODIFIED, $response->getStatusCode());
     }
 
     public function testServeReturnsContentForStaleIfModifiedSince(): void
     {
-        // Request with an old If-Modified-Since date
-        $oldDate = 'Mon, 01 Jan 2020 00:00:00 GMT';
-        $this->client->request('GET', '/_/theme/frontend.css', [], [], [
-            'HTTP_IF_MODIFIED_SINCE' => $oldDate,
-        ]);
+        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
 
-        self::assertResponseIsSuccessful();
-        self::assertNotEmpty($this->client->getResponse()->getContent());
+        $request = new Request();
+        $request->headers->set('If-Modified-Since', 'Mon, 01 Jan 2020 00:00:00 GMT');
+
+        $response = $this->controller->serve('frontend.css', $request);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertNotEmpty($response->getContent());
     }
 
     public function testServeReturnsFullContentForNonMatchingEtag(): void
     {
-        $this->client->request('GET', '/_/theme/frontend.css', [], [], [
-            'HTTP_IF_NONE_MATCH' => '"invalid-etag"',
-        ]);
+        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
 
-        self::assertResponseIsSuccessful();
-        self::assertNotEmpty($this->client->getResponse()->getContent());
+        $request = new Request();
+        $request->headers->set('If-None-Match', '"invalid-etag"');
+
+        $response = $this->controller->serve('frontend.css', $request);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertNotEmpty($response->getContent());
+    }
+
+    public function testServeReturnsCorrectContent(): void
+    {
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($this->createResult(content: 'body { margin: 0; }'));
+
+        $response = $this->controller->serve('frontend.css', new Request());
+
+        self::assertSame('body { margin: 0; }', $response->getContent());
     }
 
     public function testServeSourceMapReturnsNotFoundForMissingMap(): void
     {
-        $this->client->request('GET', '/_/theme/0000000000000000000000000000dead.css.map');
+        $this->combiner->method('getSourceMap')->willReturn(null);
 
-        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+        $this->expectException(NotFoundHttpException::class);
+
+        $this->controller->serveSourceMap('deadbeef');
     }
 
     public function testServeSourceMapReturnsOkForExistingMap(): void
     {
-        /** @var ThemeCombiner $combiner */
-        $combiner = self::getContainer()->get(ThemeCombiner::class);
-        $result = $combiner->getCombinedFile('frontend.css');
+        $this->combiner->method('getSourceMap')->willReturn('{"version":3}');
 
-        // Only test source map endpoint if source maps are enabled
-        if ($result->sourceMapContent === null) {
-            self::markTestSkipped('Source maps are disabled in test environment.');
-        }
+        $response = $this->controller->serveSourceMap('abc123');
 
-        $this->client->request('GET', '/_/theme/' . $result->hash . '.css.map');
-
-        self::assertResponseIsSuccessful();
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame('{"version":3}', $response->getContent());
     }
 
     public function testServeSourceMapReturnsJsonContentType(): void
     {
-        /** @var ThemeCombiner $combiner */
-        $combiner = self::getContainer()->get(ThemeCombiner::class);
-        $result = $combiner->getCombinedFile('frontend.css');
+        $this->combiner->method('getSourceMap')->willReturn('{"version":3}');
 
-        if ($result->sourceMapContent === null) {
-            self::markTestSkipped('Source maps are disabled in test environment.');
-        }
+        $response = $this->controller->serveSourceMap('abc123');
 
-        $this->client->request('GET', '/_/theme/' . $result->hash . '.css.map');
-
-        $response = $this->client->getResponse();
         self::assertSame('application/json', $response->headers->get('Content-Type'));
     }
 
     public function testServeSourceMapReturnsCacheControlHeader(): void
     {
-        /** @var ThemeCombiner $combiner */
-        $combiner = self::getContainer()->get(ThemeCombiner::class);
-        $result = $combiner->getCombinedFile('frontend.css');
+        $this->combiner->method('getSourceMap')->willReturn('{"version":3}');
 
-        if ($result->sourceMapContent === null) {
-            self::markTestSkipped('Source maps are disabled in test environment.');
-        }
+        $response = $this->controller->serveSourceMap('abc123');
 
-        $this->client->request('GET', '/_/theme/' . $result->hash . '.css.map');
-
-        $cacheControl = $this->client->getResponse()
-            ->headers->get('Cache-Control')
-        ;
+        $cacheControl = $response->headers->get('Cache-Control');
         self::assertStringContainsString('immutable', $cacheControl ?? '');
-    }
-
-    public function testServeAdminCssReturnsOk(): void
-    {
-        $this->client->request('GET', '/_/theme/admin.css');
-
-        self::assertResponseIsSuccessful();
-        self::assertStringStartsWith('text/css', $this->client->getResponse()->headers->get('Content-Type') ?? '');
-    }
-
-    public function testServeCssContentIsNotEmpty(): void
-    {
-        $this->client->request('GET', '/_/theme/frontend.css');
-
-        $content = $this->client->getResponse()
-            ->getContent()
-        ;
-        self::assertNotEmpty($content);
-        self::assertIsString($content);
     }
 }

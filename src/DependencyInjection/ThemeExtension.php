@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace PsychoB\Backlog\Theme\DependencyInjection;
+namespace PsychoB\Theme\DependencyInjection;
 
 use Override;
-use PsychoB\Backlog\Theme\Controller\ServeCombinedFilesController;
-use PsychoB\Backlog\Theme\Service\SourceMapGenerator;
-use PsychoB\Backlog\Theme\Service\ThemeCombiner;
-use PsychoB\Backlog\Theme\Twig\ThemeExtension as TwigThemeExtension;
+use PsychoB\Theme\Controller\ServeCombinedFilesController;
+use PsychoB\Theme\Service\SourceMapGenerator;
+use PsychoB\Theme\Service\ThemeCombiner;
+use PsychoB\Theme\Service\ThemeCombinerInterface;
+use PsychoB\Theme\Twig\ThemeExtension as TwigThemeExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -51,6 +52,7 @@ final class ThemeExtension extends Extension
         $definition->setAutoconfigured(true);
 
         $container->setDefinition(ThemeCombiner::class, $definition);
+        $container->setAlias(ThemeCombinerInterface::class, ThemeCombiner::class);
 
         $controllerDefinition = new Definition(ServeCombinedFilesController::class);
         $controllerDefinition->setAutowired(true);
