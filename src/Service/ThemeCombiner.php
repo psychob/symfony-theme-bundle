@@ -14,6 +14,8 @@ use Symfony\Contracts\Cache\ItemInterface;
 
 /**
  * Combines multiple CSS/JS files into a single cached output with intelligent cache invalidation.
+ *
+ * @psalm-api
  */
 final class ThemeCombiner implements ThemeCombinerInterface
 {
@@ -95,7 +97,7 @@ final class ThemeCombiner implements ThemeCombinerInterface
             /** @var CombinedFileResult $result */
             return $this->cache->get(
                 $cacheKey,
-                fn(ItemInterface $item): CombinedFileResult => $this->generateCombinedFile(
+                fn(ItemInterface $_item): CombinedFileResult => $this->generateCombinedFile(
                     $resolvedPaths,
                     $mtimes,
                     $hash,

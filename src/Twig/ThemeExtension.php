@@ -11,6 +11,8 @@ use Twig\TwigFunction;
 
 /**
  * Provides themeAsset() Twig function for generating URLs to combined theme files.
+ *
+ * @psalm-api
  */
 final class ThemeExtension extends AbstractExtension
 {

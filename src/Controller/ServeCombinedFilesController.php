@@ -12,6 +12,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Serves combined CSS/JS theme files with HTTP caching support.
+ *
+ * @psalm-api
  */
 #[Route('/_/theme')]
 final class ServeCombinedFilesController

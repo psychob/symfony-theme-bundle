@@ -17,6 +17,8 @@ use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * Loads theme configuration and registers the ThemeCombiner service.
+ *
+ * @psalm-api
  */
 final class ThemeExtension extends Extension
 {

@@ -9,6 +9,8 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**
  * Bundle for serving combined CSS/JS theme files with intelligent caching.
+ *
+ * @psalm-api
  */
 final class ThemeBundle extends Bundle
 {

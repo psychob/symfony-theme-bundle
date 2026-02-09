@@ -19,6 +19,7 @@ final class Configuration implements ConfigurationInterface
         $treeBuilder = new TreeBuilder('theme');
         $rootNode = $treeBuilder->getRootNode();
 
+        /** @psalm-suppress UnusedMethodCall */
         $rootNode->children()
             ->booleanNode('sourcemaps')
             ->defaultFalse()

@@ -11,6 +11,8 @@ use Symfony\Component\Stopwatch\Stopwatch;
 
 /**
  * Generates source maps (v3) for combined CSS/JS files.
+ *
+ * @psalm-api
  */
 final class SourceMapGenerator
 {
