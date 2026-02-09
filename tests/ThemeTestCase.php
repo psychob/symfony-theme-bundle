@@ -9,6 +9,4 @@ use PHPUnit\Framework\TestCase;
 /**
  * Base test case for Theme bundle tests.
  */
-abstract class ThemeTestCase extends TestCase
-{
-}
+abstract class ThemeTestCase extends TestCase {}

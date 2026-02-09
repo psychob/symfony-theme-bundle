@@ -17,7 +17,7 @@ use Twig\TwigFunction;
 final class ThemeExtensionTest extends ThemeTestCase
 {
     private ThemeExtension $extension;
-    private UrlGeneratorInterface&MockObject $urlGenerator;
+    private MockObject&UrlGeneratorInterface $urlGenerator;
 
     #[Override]
     protected function setUp(): void
@@ -39,7 +39,8 @@ final class ThemeExtensionTest extends ThemeTestCase
     {
         $this->urlGenerator->method('generate')
             ->with('theme_serve', ['file' => 'frontend.css'])
-            ->willReturn('/_/theme/frontend.css');
+            ->willReturn('/_/theme/frontend.css')
+        ;
 
         $url = $this->extension->themeAsset('frontend.css');
 
@@ -49,7 +50,8 @@ final class ThemeExtensionTest extends ThemeTestCase
     public function testThemeAssetGeneratesUrlForDifferentFiles(): void
     {
         $this->urlGenerator->method('generate')
-            ->willReturnCallback(fn(string $route, array $params): string => '/_/theme/' . $params['file']);
+            ->willReturnCallback(fn(string $route, array $params): string => '/_/theme/' . $params['file'])
+        ;
 
         $frontendUrl = $this->extension->themeAsset('frontend.css');
         $adminUrl = $this->extension->themeAsset('admin.css');
@@ -64,7 +66,8 @@ final class ThemeExtensionTest extends ThemeTestCase
         $this->urlGenerator->expects(self::once())
             ->method('generate')
             ->with('theme_serve', ['file' => 'app.js'])
-            ->willReturn('/_/theme/app.js');
+            ->willReturn('/_/theme/app.js')
+        ;
 
         $this->extension->themeAsset('app.js');
     }

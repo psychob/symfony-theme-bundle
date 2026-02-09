@@ -20,7 +20,7 @@ use Tests\PsychoB\Theme\ThemeTestCase;
 final class ServeCombinedFilesControllerTest extends ThemeTestCase
 {
     private ServeCombinedFilesController $controller;
-    private ThemeCombinerInterface&MockObject $combiner;
+    private MockObject&ThemeCombinerInterface $combiner;
 
     #[Override]
     protected function setUp(): void
@@ -41,7 +41,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeReturnsOkForConfiguredFile(): void
     {
-        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($this->createResult())
+        ;
 
         $response = $this->controller->serve('frontend.css', new Request());
 
@@ -50,7 +52,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeReturnsCssContentType(): void
     {
-        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($this->createResult())
+        ;
 
         $response = $this->controller->serve('frontend.css', new Request());
 
@@ -60,7 +64,8 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
     public function testServeReturnsJsContentType(): void
     {
         $this->combiner->method('getCombinedFile')
-            ->willReturn($this->createResult(content: 'var x=1;', contentType: 'application/javascript'));
+            ->willReturn($this->createResult(content: 'var x=1;', contentType: 'application/javascript'))
+        ;
 
         $response = $this->controller->serve('app.js', new Request());
 
@@ -69,7 +74,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeReturnsEtagHeader(): void
     {
-        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($this->createResult())
+        ;
 
         $response = $this->controller->serve('frontend.css', new Request());
 
@@ -80,7 +87,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeReturnsLastModifiedHeader(): void
     {
-        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($this->createResult())
+        ;
 
         $response = $this->controller->serve('frontend.css', new Request());
 
@@ -89,7 +98,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeReturnsCacheControlHeader(): void
     {
-        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($this->createResult())
+        ;
 
         $response = $this->controller->serve('frontend.css', new Request());
 
@@ -102,7 +113,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
     public function testServeReturnsNotModifiedForMatchingEtag(): void
     {
         $result = $this->createResult();
-        $this->combiner->method('getCombinedFile')->willReturn($result);
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($result)
+        ;
 
         $request = new Request();
         $request->headers->set('If-None-Match', '"' . $result->hash . '"');
@@ -115,7 +128,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
     public function testServeReturnsNotModifiedForMatchingIfModifiedSince(): void
     {
         $result = $this->createResult();
-        $this->combiner->method('getCombinedFile')->willReturn($result);
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($result)
+        ;
 
         $futureDate = gmdate('D, d M Y H:i:s', $result->lastModified + 3_600) . ' GMT';
         $request = new Request();
@@ -128,7 +143,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeReturnsContentForStaleIfModifiedSince(): void
     {
-        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($this->createResult())
+        ;
 
         $request = new Request();
         $request->headers->set('If-Modified-Since', 'Mon, 01 Jan 2020 00:00:00 GMT');
@@ -141,7 +158,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeReturnsFullContentForNonMatchingEtag(): void
     {
-        $this->combiner->method('getCombinedFile')->willReturn($this->createResult());
+        $this->combiner->method('getCombinedFile')
+            ->willReturn($this->createResult())
+        ;
 
         $request = new Request();
         $request->headers->set('If-None-Match', '"invalid-etag"');
@@ -155,7 +174,8 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
     public function testServeReturnsCorrectContent(): void
     {
         $this->combiner->method('getCombinedFile')
-            ->willReturn($this->createResult(content: 'body { margin: 0; }'));
+            ->willReturn($this->createResult(content: 'body { margin: 0; }'))
+        ;
 
         $response = $this->controller->serve('frontend.css', new Request());
 
@@ -164,7 +184,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeSourceMapReturnsNotFoundForMissingMap(): void
     {
-        $this->combiner->method('getSourceMap')->willReturn(null);
+        $this->combiner->method('getSourceMap')
+            ->willReturn(null)
+        ;
 
         $this->expectException(NotFoundHttpException::class);
 
@@ -173,7 +195,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeSourceMapReturnsOkForExistingMap(): void
     {
-        $this->combiner->method('getSourceMap')->willReturn('{"version":3}');
+        $this->combiner->method('getSourceMap')
+            ->willReturn('{"version":3}')
+        ;
 
         $response = $this->controller->serveSourceMap('abc123');
 
@@ -183,7 +207,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeSourceMapReturnsJsonContentType(): void
     {
-        $this->combiner->method('getSourceMap')->willReturn('{"version":3}');
+        $this->combiner->method('getSourceMap')
+            ->willReturn('{"version":3}')
+        ;
 
         $response = $this->controller->serveSourceMap('abc123');
 
@@ -192,7 +218,9 @@ final class ServeCombinedFilesControllerTest extends ThemeTestCase
 
     public function testServeSourceMapReturnsCacheControlHeader(): void
     {
-        $this->combiner->method('getSourceMap')->willReturn('{"version":3}');
+        $this->combiner->method('getSourceMap')
+            ->willReturn('{"version":3}')
+        ;
 
         $response = $this->controller->serveSourceMap('abc123');
 
